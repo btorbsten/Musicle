@@ -2,37 +2,70 @@
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
-using MusicleBot.config;
 
 namespace MusicleBot.services
 {
     public static class AudioService
     {
+        private const int MaxAttempts = 2;
 
-        // Downloads a snippet of a song from YouTube as an OGG file
-        public static async Task<string> DownloadSnippetAsOggAsync(
+        // Returns path to ogg file, or null if it fails after retries
+        public static async Task<string?> DownloadSnippetAsOggAsync(
             string searchQuery,
             int durationSeconds,
             int startSeconds
         )
         {
-            // Temp directory
+            for (int attempt = 1; attempt <= MaxAttempts; attempt++)
+            {
+                try
+                {
+                    return await TryDownloadOnce(
+                        searchQuery,
+                        durationSeconds,
+                        startSeconds
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(
+                        $"[AudioService] Attempt {attempt} failed: {ex.Message}"
+                    );
+
+                    if (attempt == MaxAttempts)
+                    {
+                        Console.WriteLine(
+                            "[AudioService] Skipping song after repeated failure."
+                        );
+                        return null;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static async Task<string> TryDownloadOnce(
+            string searchQuery,
+            int durationSeconds,
+            int startSeconds
+        )
+        {
             string tempDir = Path.Combine(Path.GetTempPath(), "musicle");
             Directory.CreateDirectory(tempDir);
 
-            // File paths
             string rawPath = Path.Combine(tempDir, $"{Guid.NewGuid()}.opus");
             string oggPath = rawPath.Replace(".opus", ".ogg");
 
-            // Paths to tools
             string ytDlpPath = string.IsNullOrWhiteSpace(Program.Config.ytdlpPath)
                 ? "yt-dlp"
-                : Program.Config.ytdlpPath; // yt-dlp.exe file location
+                : Program.Config.ytdlpPath;
+
             string ffmpegPath = string.IsNullOrWhiteSpace(Program.Config.ffmpegPath)
                 ? "ffmpeg"
-                : Program.Config.ffmpegPath; //ffmpeg.exe file location
+                : Program.Config.ffmpegPath;
 
-            // yt-dlp downloads the best audio and extracts it as opus
+            
             var ytProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -46,7 +79,6 @@ namespace MusicleBot.services
                         $"-o \"{rawPath}\" " +
                         $"\"ytsearch1:{searchQuery}\"",
                     WorkingDirectory = tempDir,
-                    RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
@@ -59,10 +91,10 @@ namespace MusicleBot.services
             if (!File.Exists(rawPath))
             {
                 string error = await ytProcess.StandardError.ReadToEndAsync();
-                throw new Exception($"yt-dlp failed to download audio:\n{error}");
+                throw new Exception($"yt-dlp failed: {error}");
             }
 
-            // ffmpeg gets song snippet and converts to ogg then deletes raw file
+            
             var ffmpegProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -72,7 +104,6 @@ namespace MusicleBot.services
                         $"-y -ss {startSeconds} -t {durationSeconds} " +
                         $"-i \"{rawPath}\" " +
                         $"-c:a libopus \"{oggPath}\"",
-                    RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
@@ -85,12 +116,11 @@ namespace MusicleBot.services
             SafeDelete(rawPath);
 
             if (!File.Exists(oggPath))
-                throw new Exception("FFmpeg failed to create snippet");
+                throw new Exception("ffmpeg failed to create ogg snippet");
 
             return oggPath;
         }
 
-        // Safely delete a file
         private static void SafeDelete(string path)
         {
             try
@@ -100,7 +130,7 @@ namespace MusicleBot.services
             }
             catch
             {
-                // ignore
+                // intentionally ignored
             }
         }
     }

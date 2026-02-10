@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MusicleBot.other;
 
 namespace MusicleBot.config
 {
@@ -18,7 +19,7 @@ namespace MusicleBot.config
         public string ytdlpPath { get; set; }
         public async Task ReadJSON()
         {
-            using (StreamReader sr = new StreamReader("config.json"))
+            using (StreamReader sr = new StreamReader(DataPaths.Config))
             {
                 string json = await sr.ReadToEndAsync();
                 JSONStructure data = JsonConvert.DeserializeObject<JSONStructure>(json);

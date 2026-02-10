@@ -1,33 +1,31 @@
-﻿using Newtonsoft.Json;
+﻿using MusicleBot.other;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.IO;
 
 namespace MusicleBot.services
 {
     public static class LeaderboardService
     {
-        private static readonly string FilePath = "leaderboard.json";
-
-        // Saves the leaderboards to a JSON file
         public static void Save(Dictionary<ulong, Dictionary<ulong, UserScore>> leaderboards)
         {
             string json = JsonConvert.SerializeObject(leaderboards, Formatting.Indented);
-            File.WriteAllText(FilePath, json);
+            File.WriteAllText(DataPaths.Leaderboard, json);
         }
 
-        // Loads the leaderboards from a JSON file
         public static Dictionary<ulong, Dictionary<ulong, UserScore>> Load()
         {
-            if (!File.Exists(FilePath))
-                return new Dictionary<ulong, Dictionary<ulong, UserScore>>();
+            if (!File.Exists(DataPaths.Leaderboard))
+                return new();
 
-            string json = File.ReadAllText(FilePath);
-            return JsonConvert.DeserializeObject<Dictionary<ulong, Dictionary<ulong, UserScore>>>(json)
-                   ?? new Dictionary<ulong, Dictionary<ulong, UserScore>>();
+            string json = File.ReadAllText(DataPaths.Leaderboard);
+            return JsonConvert.DeserializeObject<
+                Dictionary<ulong, Dictionary<ulong, UserScore>>
+            >(json) ?? new();
         }
     }
 
