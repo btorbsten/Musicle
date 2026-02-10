@@ -3,6 +3,6 @@
   "prefix": ";",
   "spotifyClientId": "SPOTIFY_CLIENT_ID",
   "spotifyClientSecret": "SPOTIFY_CLIENT_SECRET",
-  "ffmpegPath": "/usr/bin/ffmpeg",
-  "ytdlpPath": "/usr/bin/yt-dlp"
+  "ffmpegPath": "/usr/bin/ffmpeg.exe",
+  "ytdlpPath": "/usr/bin/yt-dlp.exe"
 }
